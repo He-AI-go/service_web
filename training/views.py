@@ -3,6 +3,11 @@ from django.http import JsonResponse
 from django.utils import timezone
 from .models import *
 import re
+from django.http import JsonResponse, FileResponse
+from django.views import View
+from .models import CourseChapter, CourseResource, LearningRecord, Employee
+import os
+from django.conf import settings
 
 
 # 模拟员工登录（后续对接ERP同步后，替换为真实工号密码验证，内部系统简化）
@@ -206,3 +211,110 @@ def document_preview(request, chapter_id):
         'username': request.session.get('username'),
     }
     return render(request, 'training/document_preview.html', context)
+
+
+# 1. 视频资源访问接口（安全校验：仅登录员工可访问）
+class CourseVideoView(View):
+    def get(self, request, resource_id):
+        # 简易登录校验（实际项目替换为Django auth）
+        employee_id = request.GET.get('employee_id')
+        if not employee_id or not Employee.objects.filter(id=employee_id).exists():
+            return JsonResponse({'code': 401, 'msg': '请先登录！'})
+
+        # 获取视频资源，校验类型
+        try:
+            resource = CourseResource.objects.get(id=resource_id, resource_type='video')
+            # 校验文件是否存在
+            file_path = os.path.join(settings.MEDIA_ROOT, resource.file.name)
+            if not os.path.exists(file_path):
+                return JsonResponse({'code': 404, 'msg': '视频文件不存在！'})
+
+            # 返回视频文件（支持流式播放）
+            response = FileResponse(open(file_path, 'rb'))
+            response['Content-Type'] = 'video/mp4'
+            response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+            return response
+        except CourseResource.DoesNotExist:
+            return JsonResponse({'code': 400, 'msg': '非视频资源或资源不存在！'})
+        except Exception as e:
+            return JsonResponse({'code': 500, 'msg': f'服务器错误：{str(e)}'})
+
+
+# 2. 学习状态更新接口（视频播放完成标记）
+class UpdateLearningStatusView(View):
+    def post(self, request):
+        employee_id = request.POST.get('employee_id')
+        chapter_id = request.POST.get('chapter_id')
+        play_progress = request.POST.get('play_progress', 0)  # 播放进度（秒）
+
+        if not employee_id or not chapter_id:
+            return JsonResponse({'code': 400, 'msg': '参数缺失！'})
+
+        try:
+            employee = Employee.objects.get(id=employee_id)
+            chapter = CourseChapter.objects.get(id=chapter_id)
+
+            # 获取/创建学习记录
+            record, created = LearningRecord.objects.get_or_create(
+                employee=employee,
+                chapter=chapter,
+                defaults={'play_progress': play_progress}
+            )
+
+            # 核心：如果播放进度≥视频总时长（前端传100表示完成），标记为已完成
+            if int(play_progress) >= 100:
+                record.is_completed = True
+                record.complete_time = timezone.now()
+            else:
+                record.play_progress = play_progress  # 更新播放进度
+
+            record.save()
+            return JsonResponse({'code': 200, 'msg': '状态更新成功！', 'data': {'is_completed': record.is_completed}})
+        except (Employee.DoesNotExist, CourseChapter.DoesNotExist):
+            return JsonResponse({'code': 404, 'msg': '员工或章节不存在！'})
+        except Exception as e:
+            return JsonResponse({'code': 500, 'msg': f'服务器错误：{str(e)}'})
+
+
+# 3. 学习路径校验接口（强制按顺序学习）
+class CheckLearningPathView(View):
+    def get(self, request):
+        employee_id = request.GET.get('employee_id')
+        chapter_id = request.GET.get('chapter_id')
+
+        if not employee_id or not chapter_id:
+            return JsonResponse({'code': 400, 'msg': '参数缺失！'})
+
+        try:
+            employee = Employee.objects.get(id=employee_id)
+            current_chapter = CourseChapter.objects.get(id=chapter_id)
+            course = current_chapter.course  # 关联课程
+
+            # 获取该课程下所有章节（按sort排序）
+            chapters = CourseChapter.objects.filter(course=course).order_by('sort')
+            chapter_list = list(chapters)
+            current_index = chapter_list.index(current_chapter)
+
+            # 校验：如果不是第一章，检查上一章节是否完成
+            if current_index > 0:
+                prev_chapter = chapter_list[current_index - 1]
+                prev_record = LearningRecord.objects.filter(
+                    employee=employee,
+                    chapter=prev_chapter,
+                    is_completed=True
+                ).exists()
+                if not prev_record:
+                    return JsonResponse({
+                        'code': 403,
+                        'msg': f'请先完成上一章节「{prev_chapter.name}」的学习！',
+                        'data': {'prev_chapter_name': prev_chapter.name}
+                    })
+
+            # 校验通过
+            return JsonResponse({'code': 200, 'msg': '可学习该章节！'})
+        except (Employee.DoesNotExist, CourseChapter.DoesNotExist):
+            return JsonResponse({'code': 404, 'msg': '员工或章节不存在！'})
+        except ValueError:
+            return JsonResponse({'code': 400, 'msg': '章节不属于该课程！'})
+        except Exception as e:
+            return JsonResponse({'code': 500, 'msg': f'服务器错误：{str(e)}'})

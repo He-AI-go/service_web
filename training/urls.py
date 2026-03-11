@@ -12,4 +12,11 @@ urlpatterns = [
     path('video/complete/<int:chapter_id>/', views.video_complete, name='video_complete'),
     #文档学习
     path('document/preview/<int:chapter_id>/', views.document_preview, name='document_preview'),
+    # 视频资源访问
+    path('video/<int:resource_id>/', views.CourseVideoView.as_view(), name='course_video'),
+    # 更新学习状态
+    path('update_learning_status/', views.UpdateLearningStatusView.as_view(), name='update_learning_status'),
+    # 校验学习路径
+    path('check_learning_path/', views.CheckLearningPathView.as_view(), name='check_learning_path'),
+
 ]

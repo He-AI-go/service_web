@@ -15,6 +15,11 @@ class CourseDifficultyChoices(models.TextChoices):
     """课程难度枚举"""
     PRIMARY = "primary", "初级"
     MIDDLE = "middle", "中级"
+# 课程资源类型枚举（提前定义，方便前后端统一）
+class ResourceTypeChoices(models.TextChoices):
+    VIDEO = 'video', '视频'
+    DOC = 'doc', '文档'
+    PPT = 'ppt', 'PPT'
 
 class ChapterTypeChoices(models.TextChoices):
     """章节类型：视频/文档"""
@@ -139,26 +144,30 @@ class Course(models.Model):
 
 # 课程资料表（核心：自动识别文件类型，不用手动选）
 class CourseResource(models.Model):
-    course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="resources",
-        verbose_name="所属课程",
-        help_text="选这个资料属于哪门课"
+    """课程资源表（视频/文档）"""
+    chapter = models.ForeignKey('CourseChapter', on_delete=models.CASCADE, verbose_name='所属章节')
+    resource_type = models.CharField(
+        max_length=10,
+        choices=ResourceTypeChoices.choices,
+        verbose_name='资源类型'
     )
-    name = models.CharField(
-        max_length=200,
-        verbose_name="资料名称",
-        help_text="例如：第一章 物流概述、第二节 仓库盘点流程"
-    )
-    file_type = models.CharField(
-        max_length=10, choices=FileTypeChoices.choices,
-        verbose_name="文件类型",
-        editable=False  # 不让手动改，系统自动识别
-    )
-    file_path = models.FileField(
-        upload_to="course_resources/%Y/%m/%d/",
-        verbose_name="上传文件",
-        validators=[FileExtensionValidator(allowed_extensions=["mp4", "ppt", "pptx", "doc", "docx", "pdf", "xlsx"])],
-        help_text="只能传 MP4/PPT/PPTX/DOC/DOCX/PDF/XLSX 格式的文件"
+    file = models.FileField(
+        upload_to='course_resources/',
+        verbose_name='资源文件',
+        # 核心：添加文件后缀校验，解决文件类型报错
+        validators=[
+            FileExtensionValidator(
+                allowed_extensions=[
+                    # 视频格式
+                    'mp4', 'avi', 'mov',
+                    # 文档格式
+                    'doc', 'docx', 'pdf',
+                    # PPT格式
+                    'ppt', 'pptx'
+                ],
+                message='仅支持MP4/AVI/MOV（视频）、DOC/DOCX/PDF（文档）、PPT/PPTX格式！'
+            )
+        ]
     )
     file_size = models.BigIntegerField(verbose_name="文件大小", editable=False)  # 系统自动算
     upload_time = models.DateTimeField(auto_now_add=True, verbose_name="上传时间")
@@ -238,7 +247,7 @@ class LearningRecord(models.Model):
     is_completed = models.BooleanField(default=False, verbose_name="是否完成")  # 视频看完/文档打开即标记为True
     complete_time = models.DateTimeField(null=True, blank=True, verbose_name="完成时间")
     create_time = models.DateTimeField(auto_now_add=True, verbose_name="记录创建时间")
-
+    play_progress = models.IntegerField(default=0, verbose_name='视频播放进度(秒)')
     class Meta:
         db_table = "learning_record"
         verbose_name = "学习记录"
