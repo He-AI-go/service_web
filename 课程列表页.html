@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLY GROUP - 业务培训网站</title>
+    <!-- 引入BootstrapCDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 引入Bootstrap图标 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* 全局禁止元素拖动/选中 */
+        * {
+            user-drag: none;
+            -webkit-user-drag: none;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: default;
+        }
+        body {
+            background-color: #f5f7fa;
+            font-family: "Microsoft YaHei", sans-serif;
+            padding-bottom: 80px;
+        }
+        /* 顶部导航 */
+        .top-nav {
+            background-color: #165DFF;
+            color: white;
+            padding: 10px 20px;
+        }
+        /* 通用板块样式：三大板块统一卡片 */
+        .home-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            border-left: 4px solid #165DFF;
+            padding-left: 10px;
+        }
+        /* 视频学习板块 - 课程筛选 */
+        .course-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        /* 课程卡片 */
+        .course-card {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .course-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .course-card .course-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .course-card .course-info {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            gap: 15px;
+        }
+        .course-tag {
+            background-color: #e8f3ff;
+            color: #165DFF;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        /* 数据分析板块（员工个人视角） */
+        .data-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .data-filter .form-select {
+            width: 250px;
+        }
+        .data-chart {
+            width: 100%;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .weak-point {
+            background-color: #fff1f1;
+            color: #dc3545;
+            padding: 8px 12px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 5px 5px 5px 0;
+            font-size: 14px;
+        }
+        /* 公司百问百答板块 - 分级样式 */
+        /* 一级部门标签页 */
+        .dept-tabs {
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .dept-tabs .nav-link {
+            color: #666;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 8px 20px;
+            font-weight: 500;
+        }
+        .dept-tabs .nav-link.active {
+            color: #165DFF;
+            border-bottom: 2px solid #165DFF;
+            background-color: transparent;
+        }
+        /* 二级分类按钮组 */
+        .second-cate {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .cate-btn {
+            background-color: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            color: #666;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .cate-btn.active {
+            background-color: #165DFF;
+            color: white;
+            border: 1px solid #165DFF;
+        }
+        /* 百问百答-贴吧式问题 */
+        .qa-post {
+            border: 1px solid #f1f1f1;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .qa-post-title {
+            font-weight: 600;
+            color: #165DFF;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .qa-post-info {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        .qa-post-content {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .qa-reply {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .qa-reply-user {
+            font-size: 13px;
+            font-weight: 500;
+            color: #165DFF;
+        }
+        .qa-reply-content {
+            font-size: 13px;
+            color: #333;
+            margin-top: 5px;
+        }
+        /* AI智能客服悬浮窗口样式（保留） */
+        .ai-service-btn {
+            position: fixed;
+            right: 30px;
+            bottom: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #165DFF;
+            color: white;
+            text-align: center;
+            line-height: 60px;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(22, 93, 255, 0.3);
+            cursor: pointer;
+            z-index: 9998;
+            transition: all 0.3s;
+        }
+        .ai-service-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(22, 93, 255, 0.4);
+        }
+        .ai-service-window {
+            position: fixed;
+            right: 30px;
+            bottom: 100px;
+            width: 380px;
+            height: 500px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+        }
+        .service-window-header {
+            background-color: #165DFF;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .service-close-btn {
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .service-close-btn:hover {
+            color: #ffeeee;
+        }
+        .service-iframe {
+            width: 100%;
+            height: calc(100% - 46px);
+            border: none;
+        }
+        /* 通用按钮样式 */
+        .btn-sm-primary {
+            background-color: #165DFF;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航（保留） -->
+    <div class="top-nav d-flex justify-content-between align-items-center">
+        <div>FLY GROUP 业务培训网站</div>
+        <div>欢迎登录：何广斌【员工账号】</div>
+    </div>
+
+    <div class="container mt-4">
+        <!-- ================================= 第一板块：视频学习 ================================= -->
+        <div class="home-section">
+            <h3 class="section-title">
+                <i class="bi bi-play-circle-fill text-primary me-2"></i>视频学习
+            </h3>
+            <!-- 课程筛选（保留核心筛选，优化布局） -->
+            <div class="course-filter">
+                <div>
+                    <span class="me-2 fs-6">学习方向：</span>
+                    <button class="btn-sm-primary">全部</button>
+                    <button class="cate-btn">国际物流</button>
+                    <button class="cate-btn">客服部</button>
+                    <button class="cate-btn">阿里平台</button>
+                    <button class="cate-btn">业务成交</button>
+                </div>
+                <div>
+                    <span class="me-2 fs-6">课程分类：</span>
+                    <button class="btn-sm-primary">全部</button>
+                    <button class="cate-btn">最新</button>
+                    <button class="cate-btn">业务培训</button>
+                    <button class="cate-btn">必学课程</button>
+                </div>
+            </div>
+            <!-- 课程列表（栅格布局，保留原有课程） -->
+            <div class="row">
+                <!-- 课程1 -->
+                <div class="col-md-4 col-sm-6">
+                    <a href="course-detail.html">
+                        <div class="course-card">
+                            <span class="course-tag">必学</span>
+                            <div class="course-title">如何核算美国海运费用+美转加渠道优势</div>
+                            <div class="course-info">
+                                <span>初级难度</span>
+                                <span>52人学习</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <!-- 课程2 -->
+                <div class="col-md-4 col-sm-6">
+                    <a href="course-detail.html">
+                        <div class="course-card">
+                            <span class="course-tag">必学</span>
+                            <div class="course-title">阿里巴巴国际站平台讲解及规则</div>
+                            <div class="course-info">
+                                <span>初级难度</span>
+                                <span>55人学习</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <!-- 课程3 -->
+                <div class="col-md-4 col-sm-6">
+                    <a href="course-detail.html">
+                        <div class="course-card">
+                            <div class="course-title">铁路与卡航(欧洲)培训</div>
+                            <div class="course-info">
+                                <span>初级难度</span>
+                                <span>42人学习</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <!-- 课程4 -->
+                <div class="col-md-4 col-sm-6">
+                    <a href="course-detail.html">
+                        <div class="course-card">
+                            <div class="course-title">如何进行RFQ报价</div>
+                            <div class="course-info">
+                                <span>初级难度</span>
+                                <span>62人学习</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <!-- 课程5 -->
+                <div class="col-md-4 col-sm-6">
+                    <a href="course-detail.html">
+                        <div class="course-card">
+                            <span class="course-tag">客服部</span>
+                            <div class="course-title">客服部工作流程</div>
+                            <div class="course-info">
+                                <span>初级难度</span>
+                                <span>60人学习</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <!-- 课程6 -->
+                <div class="col-md-4 col-sm-6">
+                    <a href="course-detail.html">
+                        <div class="course-card">
+                            <div class="course-title">国际快递知识培训</div>
+                            <div class="course-info">
+                                <span>初级难度</span>
+                                <span>69人学习</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================= 第二板块：数据分析（员工个人视角） ================================= -->
+        <div class="home-section">
+            <h3 class="section-title">
+                <i class="bi bi-bar-chart-fill text-primary me-2"></i>我的学习数据分析（AI薄弱点分析）
+            </h3>
+            <p class="text-muted mb-3">AI自动记录你的做题情况，智能归类薄弱知识点，生成个性化学习分析</p>
+            <!-- 数据分析筛选：移除员工选择，仅保留课程选择（员工账号看自己的） -->
+            <div class="data-filter">
+                <div>
+                    <label class="form-label fs-6 me-2">选择我的课程</label>
+                    <select class="form-select form-select-sm">
+                        <option value="all" selected>全部已学课程</option>
+                        <option value="us-shipping">美国海运费用核算</option>
+                        <option value="ali-platform">阿里巴巴国际站平台</option>
+                        <option value="euro-rail">欧洲铁路与卡航</option>
+                        <option value="rfq">RFQ报价技巧</option>
+                    </select>
+                </div>
+                <button class="btn-sm-primary">查询我的分析</button>
+            </div>
+            <!-- 可视化图表（个人学习数据） -->
+            <div class="mt-3">
+                <p class="fs-6 mb-2">我的做题正确率&知识点掌握情况</p>
+                <!-- 可视化图示例（跨境物流培训适配） -->
+                <img src="https://img-blog.csdnimg.cn/20240520152512929.png" alt="个人学习数据分析图" class="data-chart">
+            </div>
+            <!-- AI智能薄弱点分析（个人视角） -->
+            <div class="mt-4">
+                <p class="fs-6 mb-2">AI识别我的核心薄弱点：</p>
+                <div class="weak-point-list mt-2">
+                    <span class="weak-point">美国海运泡货计费规则</span>
+                    <span class="weak-point">美转加渠道清关资料</span>
+                    <span class="weak-point">一件代发渠道报价标准</span>
+                    <span class="weak-point">海运偏远费核算</span>
+                </div>
+                <p class="mt-3 text-secondary fs-14">AI学习建议：针对性学习【美国海运费用核算】课程第1章，完成专项练习题并提交错题订正</p>
+            </div>
+        </div>
+
+        <!-- ================================= 第三板块：公司百问百答（一级部门+二级分类） ================================= -->
+        <div class="home-section">
+            <h3 class="section-title">
+                <i class="bi bi-question-circle-fill text-primary me-2"></i>公司百问百答
+            </h3>
+            <p class="text-muted mb-4">按部门分类查询常见问题，所有解答均为公司实操标准，新人可直接参考</p>
+
+            <!-- 一级分类：部门标签页（客服部/业务部/IT部/运营部） -->
+            <ul class="nav dept-tabs" id="deptTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="kf-tab" data-bs-toggle="tab" data-bs-target="#kf" type="button" role="tab">客服部</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="yw-tab" data-bs-toggle="tab" data-bs-target="#yw" type="button" role="tab">业务部</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="it-tab" data-bs-toggle="tab" data-bs-target="#it" type="button" role="tab">IT部</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="yy-tab" data-bs-toggle="tab" data-bs-target="#yy" type="button" role="tab">运营部</button>
+                </li>
+            </ul>
+
+            <!-- 一级部门对应的内容（含二级分类+贴吧式问题） -->
+            <div class="tab-content" id="deptTabContent">
+                <!-- 客服部（一级） -->
+                <div class="tab-pane fade show active" id="kf" role="tabpanel">
+                    <!-- 客服部二级分类 -->
+                    <div class="second-cate">
+                        <button class="cate-btn active">咨询接待</button>
+                        <button class="cate-btn">物流轨迹查询</button>
+                        <button class="cate-btn">售后理赔</button>
+                        <button class="cate-btn">客户投诉处理</button>
+                    </div>
+                    <!-- 客服部-咨询接待 贴吧式问题解答（编辑实操相关内容） -->
+                    <div class="qa-list">
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>客户询问物流时效未达标如何回复？</span>
+                                <span class="badge bg-secondary fs-12">公司标准话术</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：客服部李丽 | 更新时间：2025-09-01 | 浏览：218
+                            </div>
+                            <div class="qa-post-content">
+                                客户反馈物流时效比承诺的晚，作为客服该如何标准化回复，既安抚客户又说明原因？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">客服部主管-张敏</div>
+                                <div class="qa-reply-content">
+                                    标准回复：XX先生/女士，您好！非常抱歉本次物流时效未达预期，经查询是【港口拥堵/航班延误】导致，目前货物已在XX环节，预计XX时间可签收，我们会持续跟进物流轨迹，有最新进展第一时间通知您，为弥补不便，我司可为您申请【5%运费减免/下次发货优惠券】，请您谅解！
+                                </div>
+                            </div>
+                        </div>
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>新客户询问渠道区别该如何快速介绍？</span>
+                                <span class="badge bg-secondary fs-12">公司标准话术</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：客服部王浩 | 更新时间：2025-08-15 | 浏览：196
+                            </div>
+                            <div class="qa-post-content">
+                                新客户分不清美森快船、普船、美转加渠道的区别，需要简洁明了的介绍话术，包含时效和价格。
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">客服部主管-张敏</div>
+                                <div class="qa-reply-content">
+                                    简洁版：1.美森快船：时效12-15天，价格偏高，适合急件；2.美国普船：时效20-25天，价格适中，适合常规货物；3.美转加：时效25-30天，价格最低，适合加拿大轻小件。均包清关，普货/敏感货均可走，带电产品需单独报备。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 业务部（一级） -->
+                <div class="tab-pane fade" id="yw" role="tabpanel">
+                    <!-- 业务部二级分类 -->
+                    <div class="second-cate">
+                        <button class="cate-btn active">报价核算</button>
+                        <button class="cate-btn">渠道选择</button>
+                        <button class="cate-btn">客户开发</button>
+                        <button class="cate-btn">订单对接</button>
+                    </div>
+                    <!-- 业务部-报价核算 贴吧式问题解答 -->
+                    <div class="qa-list">
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>美国海运泡货和重货的核算标准是什么？</span>
+                                <span class="badge bg-secondary fs-12">公司实操标准</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：业务部飞扬君 | 更新时间：2025-09-10 | 浏览：289
+                            </div>
+                            <div class="qa-post-content">
+                                公司对美国海运的泡货、重货界定标准是什么？具体的计费公式是怎样的？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">业务部经理-陈阳</div>
+                                <div class="qa-reply-content">
+                                    公司统一标准：1.泡货界定：长×宽×高(cm)÷6000 > 实际重量(kg)，按<strong>体积重</strong>计费；2.重货界定：长×宽×高(cm)÷6000 ≤ 实际重量(kg)，按<strong>实际重</strong>计费；3.体积重公式：体积重(kg)=长×宽×高(cm)÷6000，所有美国海运渠道均按此标准，无例外。
+                                </div>
+                            </div>
+                        </div>
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>美转加渠道的偏远费如何核算？</span>
+                                <span class="badge bg-secondary fs-12">公司实操标准</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：业务部飞扬君 | 更新时间：2025-09-05 | 浏览：245
+                            </div>
+                            <div class="qa-post-content">
+                                加拿大哪些地区属于偏远？美转加渠道的偏远费核算标准是多少？有无最低消费？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">业务部经理-陈阳</div>
+                                <div class="qa-reply-content">
+                                    1.加拿大偏远区域：育空地区、西北地区、努纳武特地区，以及部分北部小镇（可在公司物流系统查询地址是否偏远）；2.偏远费标准：按重量核算，1.5元/公斤；3.最低消费：50元/票，不足50元按50元收取，偏远费随货一起结算，不单独收取。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IT部（一级） -->
+                <div class="tab-pane fade" id="it" role="tabpanel">
+                    <!-- IT部二级分类 -->
+                    <div class="second-cate">
+                        <button class="cate-btn active">系统登录</button>
+                        <button class="cate-btn">系统操作</button>
+                        <button class="cate-btn">问题报修</button>
+                        <button class="cate-btn">账号管理</button>
+                    </div>
+                    <!-- IT部-系统登录 贴吧式问题解答 -->
+                    <div class="qa-list">
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>培训网站/物流系统登录失败该如何处理？</span>
+                                <span class="badge bg-secondary fs-12">IT部解决方案</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：IT部赵鑫 | 更新时间：2025-08-20 | 浏览：178
+                            </div>
+                            <div class="qa-post-content">
+                                登录公司培训网站或物流操作系统时，提示账号密码错误/验证码失效/页面加载失败，该如何自行处理？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">IT部主管-刘杰</div>
+                                <div class="qa-reply-content">
+                                    自行排查步骤：1.账号密码错误：密码为员工工号后6位，忘记可联系IT部重置；2.验证码失效：刷新页面重新获取，关闭广告拦截插件，检查网络；3.页面加载失败：清理浏览器缓存（Ctrl+Shift+Del），更换Chrome/Edge浏览器，禁用VPN；4.以上均无效：发送【工号+问题描述】至IT部企业微信群，10分钟内响应。
+                                </div>
+                            </div>
+                        </div>
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>培训网站无法预览课件该如何处理？</span>
+                                <span class="badge bg-secondary fs-12">IT部解决方案</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：IT部赵鑫 | 更新时间：2025-09-15 | 浏览：156
+                            </div>
+                            <div class="qa-post-content">
+                                进入课程详情页后，点击课件预览按钮无反应，无法查看PPT/视频课件，该如何解决？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">IT部主管-刘杰</div>
+                                <div class="qa-reply-content">
+                                    解决方案：1.检查浏览器是否安装Flash插件（视频课件需）；2.将培训网站地址加入浏览器信任站点；3.关闭浏览器的“阻止弹出窗口”功能；4.若为PPT课件，可联系培训部获取临时查看链接；5.视频课件不支持手机端预览，仅支持电脑端。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 运营部（一级） -->
+                <div class="tab-pane fade" id="yy" role="tabpanel">
+                    <!-- 运营部二级分类 -->
+                    <div class="second-cate">
+                        <button class="cate-btn active">渠道运营</button>
+                        <button class="cate-btn">数据统计</button>
+                        <button class="cate-btn">活动配合</button>
+                        <button class="cate-btn">供应商对接</button>
+                    </div>
+                    <!-- 运营部-渠道运营 贴吧式问题解答 -->
+                    <div class="qa-list">
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>各物流渠道的时效更新频率是多少？</span>
+                                <span class="badge bg-secondary fs-12">运营部标准</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：运营部孙悦 | 更新时间：2025-09-20 | 浏览：132
+                            </div>
+                            <div class="qa-post-content">
+                                公司合作的海运、空运、卡航、快递渠道，时效更新的频率是多少？由谁同步？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">运营部经理-周明</div>
+                                <div class="qa-reply-content">
+                                    公司渠道时效更新标准：1.美森快船/普船/美转加：每周一更新，由海运运营组同步至企业微信业务群；2.欧洲卡航/海铁：每周三更新，由欧洲运营组同步；3.国际快递（DHL/FEDEX）：每日更新，由快递运营组同步；4.一件代发渠道：每两周更新一次，由跨境运营组同步；所有时效更新后，业务部/客服部需及时同步给客户。
+                                </div>
+                            </div>
+                        </div>
+                        <div class="qa-post">
+                            <div class="qa-post-title">
+                                <span>渠道运价调整的通知流程是什么？</span>
+                                <span class="badge bg-secondary fs-12">运营部标准</span>
+                            </div>
+                            <div class="qa-post-info">
+                                整理人：运营部孙悦 | 更新时间：2025-08-25 | 浏览：145
+                            </div>
+                            <div class="qa-post-content">
+                                当物流渠道运价发生调整时，运营部该如何通知各部门？各部门需做哪些配合？
+                            </div>
+                            <div class="qa-reply">
+                                <div class="qa-reply-user">运营部经理-周明</div>
+                                <div class="qa-reply-content">
+                                    运价调整通知流程：1.运营部确认运价调整后，制作《运价调整通知单》（含渠道/调整幅度/生效时间）；2.发送至企业微信全体群+各部门单独群；3.同步更新公司物流系统的报价模板；4.业务部：收到通知后2小时内同步给所有合作客户，新订单按新运价执行；5.客服部：做好客户咨询的解答工作，参考运营部提供的标准话术；6.生效时间：通知单标注的时间，未标注则为发送通知后次日0点。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI智能客服悬浮窗口（完全保留） -->
+    <div class="ai-service-btn" id="aiServiceBtn">
+        <i class="bi bi-chat-dots"></i>
+    </div>
+    <div class="ai-service-window" id="aiServiceWindow">
+        <div class="service-window-header">
+            <span>AI智能客服助手</span>
+            <div class="service-close-btn" id="serviceCloseBtn">
+                <i class="bi bi-x-lg"></i>
+            </div>
+        </div>
+        <iframe class="service-iframe" src="about:blank" title="AI智能客服对话窗口"></iframe>
+    </div>
+
+    <!-- 引入Bootstrap JS + 原有交互JS（保留） -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // AI客服悬浮窗交互
+        const aiServiceBtn = document.getElementById('aiServiceBtn');
+        const aiServiceWindow = document.getElementById('aiServiceWindow');
+        const serviceCloseBtn = document.getElementById('serviceCloseBtn');
+
+        aiServiceBtn.addEventListener('click', function() {
+            aiServiceWindow.style.display = aiServiceWindow.style.display === 'block' ? 'none' : 'block';
+        });
+        serviceCloseBtn.addEventListener('click', function() {
+            aiServiceWindow.style.display = 'none';
+        });
+
+        // 百问百答二级分类按钮交互
+        const cateBtns = document.querySelectorAll('.cate-btn');
+        cateBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 移除同组所有active
+                this.parentElement.querySelectorAll('.cate-btn').forEach(b => b.classList.remove('active'));
+                // 给当前按钮加active
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

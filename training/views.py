@@ -19,37 +19,22 @@ def mock_login(request):
     return redirect('course_list')
 
 
-# 课程列表页（首页）- 核心展示所有课程，支持分类/难度筛选
 def course_list(request):
-    # 未登录则跳转到模拟登录
-    if not request.session.get('employee_id'):
-        return mock_login(request)
-
-    # 获取筛选条件
-    category_id = request.GET.get('category', '')
-    difficulty = request.GET.get('difficulty', '')
-
-    # 查询所有课程分类（用于前端筛选栏）
-    categories = CourseCategory.objects.all()
-    # 基础查询：所有启用状态课程（默认）
-    courses = Course.objects.all()
-
-    # 分类筛选
-    if category_id and category_id.isdigit():
-        courses = courses.filter(category_id=category_id)
-    # 难度筛选
-    if difficulty in [CourseDifficultyChoices.PRIMARY, CourseDifficultyChoices.MIDDLE]:
-        courses = courses.filter(difficulty=difficulty)
-
-    # 传递数据到前端模板
+    # 按分类/难度查询所有课程，匹配需求中的展示规则
+    courses = Course.objects.all().order_by('category__sort', 'name')
+    # 传递课程数据给模板，键名建议用courses，模板中循环渲染
     context = {
-        'categories': categories,
-        'courses': courses,
-        'selected_category': category_id,
-        'selected_difficulty': difficulty,
-        'username': request.session.get('username')
+        'courses': courses
     }
+    # 渲染Django模板（不是纯静态HTML）
     return render(request, 'training/course_list.html', context)
+
+# 章节详情视图（单独路由访问，不要和首页关联）
+def chapter_detail(request, pk):
+    from .models import CourseChapter
+    chapter = CourseChapter.objects.get(pk=pk)
+    context = {'chapter': chapter}
+    return render(request, 'training/chapter_detail.html', context)
 
 
 # 课程详情页-展示课程章节、资料，关联视频播放
@@ -186,7 +171,7 @@ def document_preview(request, chapter_id):
     # 新增：本地解析Word文档内容
     document_content = ""
     file_type = chapter.resource.file_type
-    file_path = chapter.resource.file_path.path  # 本地文件绝对路径
+    file_path = chapter.resource.file_path  # 本地文件绝对路径
 
     if file_type in ["doc", "docx"]:
         try:
