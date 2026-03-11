@@ -54,11 +54,11 @@ class CourseAdmin(admin.ModelAdmin):
 # 6. 课程资料（自动识别文件类型，极简）
 @admin.register(CourseResource)
 class CourseResourceAdmin(admin.ModelAdmin):
-    list_display = ["name", "course", "file_type", "file_size", "upload_time"]
+    list_display = ("name", "course", "file_type", "chapter")  # 移除不存在的字段
     list_filter = ["file_type", "course"]
     search_fields = ["name"]
     fields = ["course", "name", "file_path"]  # 仅显示需要手动填的字段
-    readonly_fields = ["file_type", "file_size", "upload_time"]  # 系统自动生成
+    readonly_fields = ("name", "course")  # 只读字段必须是模型/Admin类的属性
 
 # 7. 课程章节（单独管理入口，备用）
 @admin.register(CourseChapter)

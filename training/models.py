@@ -146,6 +146,9 @@ class Course(models.Model):
 class CourseResource(models.Model):
     """课程资源表（视频/文档）"""
     chapter = models.ForeignKey('CourseChapter', on_delete=models.CASCADE, verbose_name='所属章节')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="所属课程")  # 补充course字段
+    name = models.CharField(max_length=128, verbose_name="资源名称")  # 补充name字段
+    file_type = models.CharField(max_length=32, verbose_name="文件类型")  # 补充file_type（解决Admin过滤报错）
     resource_type = models.CharField(
         max_length=10,
         choices=ResourceTypeChoices.choices,
@@ -206,7 +209,7 @@ class CourseChapter(models.Model):
         help_text="选这个章节属于哪门课"
     )
     resource = models.OneToOneField(
-        CourseResource, on_delete=models.CASCADE, related_name="chapter",
+        CourseResource, on_delete=models.CASCADE, related_name="chapter_resources",
         verbose_name="关联资料",
         help_text="选刚才上传的视频/文档资料"
     )
