@@ -145,18 +145,26 @@ class Course(models.Model):
 # 课程资料表（核心：自动识别文件类型，不用手动选）
 class CourseResource(models.Model):
     """课程资源表（视频/文档）"""
-    chapter = models.ForeignKey('CourseChapter', on_delete=models.CASCADE, verbose_name='所属章节')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="所属课程")  # 补充course字段
-    name = models.CharField(max_length=128, verbose_name="资源名称")  # 补充name字段
-    file_type = models.CharField(max_length=32, verbose_name="文件类型")  # 补充file_type（解决Admin过滤报错）
+    name = models.CharField(max_length=200, verbose_name="资源名称")  # 补全name字段
+    course = models.ForeignKey(
+        'Course',  # 关联课程模型（根据你的业务调整）
+        on_delete=models.CASCADE,
+        verbose_name="所属课程",
+        null=True, blank=True  # 可选：如果允许为空
+    )  # 补全course字段
+    chapter = models.ForeignKey('CourseChapter', on_delete=models.CASCADE, verbose_name='所属章节',default=1  )
     resource_type = models.CharField(
         max_length=10,
         choices=ResourceTypeChoices.choices,
-        verbose_name='资源类型'
+        verbose_name='资源类型',
+        null=True,  # 数据库层面允许空值
+        blank=True,  # Admin后台表单允许不上传文件（必加，否则表单会报错）,
     )
     file = models.FileField(
         upload_to='course_resources/',
         verbose_name='资源文件',
+        null=True,  # 数据库层面允许空值
+        blank=True,  # Admin后台表单允许不上传文件（必加，否则表单会报错）,
         # 核心：添加文件后缀校验，解决文件类型报错
         validators=[
             FileExtensionValidator(
@@ -174,6 +182,12 @@ class CourseResource(models.Model):
     )
     file_size = models.BigIntegerField(verbose_name="文件大小", editable=False)  # 系统自动算
     upload_time = models.DateTimeField(auto_now_add=True, verbose_name="上传时间")
+    file_type = models.CharField(
+        max_length=20,
+        verbose_name="文件类型",
+        choices=[('doc', '文档'), ('video', '视频'), ('ppt', 'PPT')],  # 可选：固定选项
+        default='doc'  # 默认值
+    )
 
     # 自动识别文件类型（管理员不用手动选）
     def save(self, *args, **kwargs):

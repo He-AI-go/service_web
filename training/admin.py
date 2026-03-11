@@ -41,7 +41,7 @@ class CourseChapterInline(admin.TabularInline):
 # 5. 课程管理（核心：内嵌章节，简化字段）
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ["name", "category", "learn_count", "difficulty", "create_time"]
+    list_display = ('name',)
     list_filter = ["category", "difficulty"]
     search_fields = ["name"]
     inlines = [CourseChapterInline]  # 内嵌章节编辑
@@ -54,16 +54,16 @@ class CourseAdmin(admin.ModelAdmin):
 # 6. 课程资料（自动识别文件类型，极简）
 @admin.register(CourseResource)
 class CourseResourceAdmin(admin.ModelAdmin):
-    list_display = ("name", "course", "file_type", "chapter")  # 移除不存在的字段
-    list_filter = ["file_type", "course"]
+    list_display = ('name', 'course', 'file_type', 'chapter')  # 确保这些字段都在模型中存在
+    list_filter = ('file_type', 'course', 'chapter')  # 确保字段存在且是可过滤的类型
     search_fields = ["name"]
     fields = ["course", "name", "file_path"]  # 仅显示需要手动填的字段
-    readonly_fields = ("name", "course")  # 只读字段必须是模型/Admin类的属性
+    readonly_fields = []  # 系统自动生成
 
 # 7. 课程章节（单独管理入口，备用）
 @admin.register(CourseChapter)
 class CourseChapterAdmin(admin.ModelAdmin):
-    list_display = ["name", "course", "chapter_type", "sort", "create_time"]
+    list_display = ('name', 'resource', 'sort')
     list_filter = ["chapter_type", "course"]
     list_editable = ["sort"]  # 列表页直接改排序
     search_fields = ["name"]
