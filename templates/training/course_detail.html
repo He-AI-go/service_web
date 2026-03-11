@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ course.name }} - 课程详情</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei";}
+        .header {height: 60px; background: #2c3e50; color: white; line-height: 60px; padding: 0 20px; font-size: 20px;}
+        .container {width: 1200px; margin: 30px auto;}
+        .course-info {border: 1px solid #eee; padding: 20px; border-radius: 5px; margin-bottom: 30px;}
+        .course-info h2 {color: #2c3e50; margin-bottom: 10px;}
+        .course-info p {color: #666; line-height: 1.8; margin-top: 10px;}
+        .chapter-list .chapter-item {border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;}
+        .chapter-item a {text-decoration: none; color: #3498db; font-size: 16px;}
+        .chapter-item a:hover {color: #2980b9;}
+        .chapter-item .status {color: #27ae60;}
+        .chapter-item .status-uncomplete {color: #e74c3c;}
+        .error-msg {padding: 10px; background: #ffebee; color: #c62828; border-radius: 5px; margin-bottom: 20px;}
+        .back {margin-top: 20px; display: inline-block; text-decoration: none; color: #2c3e50; border: 1px solid #eee; padding: 8px 20px; border-radius: 5px;}
+        .back:hover {background: #f5f5f5;}
+    </style>
+</head>
+<body>
+    <div class="header">
+        物流培训网站 - 课程详情 | 欢迎您，{{ username }}
+    </div>
+    <div class="container">
+        {% if error_msg %}
+            <div class="error-msg">{{ error_msg }}</div>
+        {% endif %}
+        <!-- 课程信息 -->
+        <div class="course-info">
+            <h2>{{ course.name }}</h2>
+            <p>分类：{{ course.category.name }} | 难度：{% if course.difficulty == "primary" %}初级{% else %}中级{% endif %} | 学习人数：{{ course.learn_count }}人</p>
+            <p>课程介绍：{{ course.intro }}</p>
+        </div>
+        <!-- 章节列表 -->
+        <div class="chapter-list">
+            <h3>课程章节（共{{ chapters|length }}章）</h3>
+            {% for chapter in chapters %}
+            <div class="chapter-item">
+                <div>
+                    第{{ chapter.sort }}章：{{ chapter.name }}
+                    {% if chapter.chapter_type == "video" %}
+                    <span style="color: #999; font-size: 14px;">(视频)</span>
+                    {% else %}
+                    <span style="color: #999; font-size: 14px;">(文档)</span>
+                    {% endif %}
+                </div>
+                <div>
+                    {% if chapter.id in chapter_complete and chapter_complete.chapter.id %}
+                        <span class="status">已完成</span>
+                    {% else %}
+                        <span class="status-uncomplete">未完成</span>
+                        {% if chapter.chapter_type == "video" %}
+                            <a href="{% url 'video_play' chapter.id %}">开始学习</a>
+                        {% else %}
+                            <a href="{% url 'document_preview' chapter.id %}">开始学习</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <a href="{% url 'course_list' %}" class="back">返回课程列表</a>
+    </div>
+</body>
+</html>

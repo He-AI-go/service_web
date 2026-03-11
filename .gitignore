@@ -1,0 +1,17 @@
+# 虚拟环境（根据你的虚拟环境名修改，如 django_env/）
+venv/
+django_env/
+# Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+# 数据库文件
+db.sqlite3
+db.sqlite3-journal
+# 系统/编辑器缓存
+.idea/
+.vscode/
+.DS_Store
+# 环境变量文件（含敏感信息）
+.env

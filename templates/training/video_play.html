@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ chapter.name }} - 视频播放</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei";}
+        .header {height: 60px; background: #2c3e50; color: white; line-height: 60px; padding: 0 20px; font-size: 20px;}
+        .container {width: 1200px; margin: 30px auto;}
+        .video-box {width: 100%; height: 600px; border: 1px solid #eee; border-radius: 5px; overflow: hidden; position: relative;}
+        video {width: 100%; height: 100%; object-fit: contain;}
+        .tip {text-align: center; color: #e74c3c; margin: 20px 0; font-weight: bold;}
+        .back {margin-top: 20px; display: inline-block; text-decoration: none; color: #2c3e50; border: 1px solid #eee; padding: 8px 20px; border-radius: 5px;}
+        .back:hover {background: #f5f5f5;}
+        .complete-msg {padding: 10px; background: #e8f5e9; color: #2e7d32; border-radius: 5px; margin-bottom: 20px; text-align: center; font-size: 16px; display: none;}
+    </style>
+</head>
+<body>
+    <div class="header">
+        物流培训网站 - 视频播放 | 欢迎您，{{ username }}
+    </div>
+    <div class="container">
+        <h2>{{ course.name }} - {{ chapter.name }}</h2>
+        <div class="complete-msg" id="completeMsg">视频播放完成，已标记为学习完成！</div>
+        <div class="tip">温馨提示：视频不支持拖动、倍速、下载，请完整播放完成学习</div>
+        <!-- 视频播放核心 -->
+        <div class="video-box">
+            <video id="videoPlayer" controls oncontextmenu="return false;">
+                <source src="{{ video_url }}" type="video/mp4">
+                您的浏览器不支持MP4视频播放，请更换Chrome/Edge/Firefox浏览器
+            </video>
+        </div>
+        <a href="{% url 'course_detail' course.id %}" class="back">返回课程详情</a>
+    </div>
+
+    <script>
+        $(function() {
+            let video = document.getElementById('videoPlayer');
+            let chapterId = {{ chapter.id }};
+            let isCompleted = false;
+
+            // 禁用视频右键（防止下载）
+            video.oncontextmenu = function() {return false;};
+            // 禁用倍速播放
+            video.playbackRate = 1;
+            video.addEventListener('ratechange', function() {
+                video.playbackRate = 1;
+            });
+            // 禁用进度条拖动
+            video.addEventListener('seeked', function() {
+                if (!isCompleted) {
+                    video.currentTime = 0;
+                    alert('视频不支持拖动，请从开头播放');
+                }
+            });
+
+            // 监听视频播放结束事件-核心：播放完成后标记学习记录
+            video.addEventListener('ended', function() {
+                if (!isCompleted) {
+                    $.ajax({
+                        url: "{% url 'video_complete' chapter.id %}",
+                        type: "POST",
+                        success: function(res) {
+                            if (res.code == 200) {
+                                isCompleted = true;
+                                $('#completeMsg').show();
+                            } else {
+                                alert(res.msg);
+                            }
+                        },
+                        error: function() {
+                            alert('标记学习完成失败，请刷新页面重试');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

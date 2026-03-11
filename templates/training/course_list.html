@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>物流培训网站-课程列表</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei";}
+        .header {height: 60px; background: #2c3e50; color: white; line-height: 60px; padding: 0 20px; font-size: 20px;}
+        .container {width: 1200px; margin: 30px auto;}
+        .filter-bar {border: 1px solid #eee; padding: 20px; margin-bottom: 20px; border-radius: 5px;}
+        .filter-bar select {padding: 8px 10px; margin-right: 20px; min-width: 200px;}
+        .course-card {border: 1px solid #eee; border-radius: 5px; padding: 20px; margin-bottom: 20px; cursor: pointer; transition: all 0.3s;}
+        .course-card:hover {box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+        .course-card h3 {margin-bottom: 10px; color: #2c3e50;}
+        .course-card .info {color: #666; margin-top: 10px;}
+        .course-card .info span {margin-right: 20px;}
+    </style>
+</head>
+<body>
+    <div class="header">
+        公司内部物流培训网站 - 课程列表 | 欢迎您，{{ username }}
+    </div>
+    <div class="container">
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <select name="category" id="category" onchange="filterCourse()">
+                <option value="">-- 请选择课程分类 --</option>
+                {% for cate in categories %}
+                <option value="{{ cate.id }}" {% if selected_category == cate.id|stringformat:"i" %}selected{% endif %}>{{ cate.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="difficulty" id="difficulty" onchange="filterCourse()">
+                <option value="">-- 请选择课程难度 --</option>
+                <option value="primary" {% if selected_difficulty == "primary" %}selected{% endif %}>初级</option>
+                <option value="middle" {% if selected_difficulty == "middle" %}selected{% endif %}>中级</option>
+            </select>
+        </div>
+        <!-- 课程列表 -->
+        <div class="course-list">
+            {% if courses %}
+                {% for course in courses %}
+                <div class="course-card" onclick="location.href='{% url 'course_detail' course.id %}'">
+                    <h3>{{ course.name }}</h3>
+                    <p>分类：{{ course.category.name }}</p>
+                    <div class="info">
+                        <span>学习人数：{{ course.learn_count }}人</span>
+                        <span>难度：{% if course.difficulty == "primary" %}初级{% else %}中级{% endif %}</span>
+                        <span>创建时间：{{ course.create_time|date:"Y-m-d" }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #999; padding: 50px 0;">暂无课程，请联系管理员上传</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // 课程筛选函数
+        function filterCourse() {
+            let category = $('#category').val();
+            let difficulty = $('#difficulty').val();
+            let url = "{% url 'course_list' %}?category=" + category + "&difficulty=" + difficulty;
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>
