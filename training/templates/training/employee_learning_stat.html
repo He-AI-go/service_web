@@ -1,0 +1,137 @@
+{% extends 'training/base.html' %}
+{% block title %}我的学习数据 - 物流培训系统{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>我的学习进度统计</h4>
+        <hr>
+    </div>
+</div>
+
+<!-- 数字卡片统计 -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-light shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">已参与课程数</h6>
+                <p class="display-6 fw-bold" id="total_course">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6>已完成课程数</h6>
+                <p class="display-6 fw-bold" id="completed_course">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6>未完成课程数</h6>
+                <p class="display-6 fw-bold" id="uncompleted_course">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6>总学习完成率</h6>
+                <p class="display-6 fw-bold" id="total_complete_rate">0%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 总学习进度条 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h6>个人总学习进度</h6>
+        <div class="progress mt-2" style="height: 30px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                 role="progressbar" id="total_progress_bar" 
+                 style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                0%
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 各课程章节完成率列表 -->
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">各课程学习详情</h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>课程名称</th>
+                    <th>总章节数</th>
+                    <th>已完成章节数</th>
+                    <th>章节完成率</th>
+                    <th>课程状态</th>
+                </tr>
+            </thead>
+            <tbody id="course_stat_table">
+                <!-- AJAX动态渲染 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(document).ready(function() {
+    // 加载个人学习统计数据
+    loadMyLearningData();
+
+    function loadMyLearningData() {
+        $.ajax({
+            url: "{% url 'training:my_learning_stat_data' %}",
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                if (res.code === 200) {
+                    let data = res.data;
+                    // 渲染数字卡片
+                    $('#total_course').text(data.total_course);
+                    $('#completed_course').text(data.completed_course);
+                    $('#uncompleted_course').text(data.uncompleted_course);
+                    $('#total_complete_rate').text(data.total_complete_rate + '%');
+                    // 渲染总进度条
+                    $('#total_progress_bar').css('width', data.total_complete_rate + '%');
+                    $('#total_progress_bar').text(data.total_complete_rate + '%');
+                    $('#total_progress_bar').attr('aria-valuenow', data.total_complete_rate);
+                    // 渲染课程详情表格
+                    let tableHtml = '';
+                    data.course_stat_list.forEach(item => {
+                        let status = item.is_completed ? 
+                            '<span class="badge bg-success">已完成</span>' : 
+                            '<span class="badge bg-secondary">未完成</span>';
+                        let progress = `<div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-primary" style="width: ${item.complete_rate}%">
+                                ${item.complete_rate}%
+                            </div>
+                        </div>`;
+                        tableHtml += `<tr>
+                            <td><a href="{% url 'training:course_chapter' 0 %}".replace('0', item.course_id)>${item.course_name}</a></td>
+                            <td>${item.total_chapter}</td>
+                            <td>${item.completed_chapter}</td>
+                            <td>${progress}</td>
+                            <td>${status}</td>
+                        </tr>`;
+                    });
+                    $('#course_stat_table').html(tableHtml);
+                }
+            },
+            error: function() {
+                alert('加载学习数据失败，请刷新页面重试');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

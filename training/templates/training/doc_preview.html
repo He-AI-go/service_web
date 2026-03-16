@@ -1,0 +1,51 @@
+{% extends 'training/base.html' %}
+{% block title %}{{ chapter.name }} - 文档预览{% endblock %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <a href="{% url 'training:course_chapter' course.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> 返回章节
+        </a>
+        <h6 class="mb-0">{{ chapter.name }}</h6>
+    </div>
+    <div class="card-body">
+        <div class="mb-3 text-center text-muted small">
+            温馨提示：文档仅支持在线预览，不提供下载功能。
+        </div>
+        <!-- 文档预览容器 -->
+        <div id="docPreviewContainer" class="w-100" style="min-height: 600px; border: 1px solid #eee; padding: 10px;">
+            {% if doc_type in 'pdf' %}
+                <!-- PDF预览：使用PDF.js（CDN） -->
+                <iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file={{ doc_url|urlencode }}" class="w-100 h-100 border-0" frameborder="0"></iframe>
+            {% elif doc_type in 'ppt,pptx' %}
+                <!-- PPT预览：使用pptxjs（CDN），简单展示 -->
+                <embed src="{{ doc_url }}" type="application/vnd.ms-powerpoint" class="w-100 h-100" />
+            {% elif doc_type in 'doc,docx' %}
+                <!-- Word预览：使用docxjs（CDN），简单展示 -->
+                <embed src="{{ doc_url }}" type="application/msword" class="w-100 h-100" />
+            {% else %}
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <h5 class="text-muted">该文档类型暂不支持在线预览，请下载后查看（仅管理员可操作）</h5>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.js"></script>
+<script>
+// 禁用预览容器右键菜单（防止下载）
+$('#docPreviewContainer').on('contextmenu', function() {
+    return false;
+});
+// 禁用页面另存为
+document.onkeydown = function(e) {
+    if (e.ctrlKey && (e.keyCode === 83 || e.keyCode === 115)) {
+        e.preventDefault();
+        alert('页面不支持另存为，请遵守学习规则！');
+        return false;
+    }
+};
+</script>
+{% endblock %}

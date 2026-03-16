@@ -1,0 +1,178 @@
+{% extends 'training/base.html' %}
+{% block title %}平台数据总览 - 物流培训系统{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>平台学习数据总览（管理员视角）</h4>
+        <hr>
+    </div>
+</div>
+
+<!-- 平台核心数据卡片 -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-light shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6 class="text-muted">总学习员工数</h6>
+                <p class="display-6 fw-bold" id="total_learn_employee">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6>平台总课程数</h6>
+                <p class="display-6 fw-bold" id="total_course">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6>已完成课程数</h6>
+                <p class="display-6 fw-bold" id="total_completed_course">0</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white shadow-sm h-100">
+            <div class="card-body text-center">
+                <h6>平台课程完成率</h6>
+                <p class="display-6 fw-bold" id="platform_complete_rate">0%</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ECharts可视化图表：一行两列 -->
+<div class="row g-4 mb-4">
+    <!-- 学习人数柱状图 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">各课程学习人数</h6>
+            </div>
+            <div class="card-body">
+                <div id="echarts_bar" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+    <!-- 课程完成率饼图 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">课程完成率分布</h6>
+            </div>
+            <div class="card-body">
+                <div id="echarts_pie" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 课程详细统计列表 -->
+<div class="card shadow-sm">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">课程详情统计</h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>课程名称</th>
+                    <th>学习人数</th>
+                    <th>完成人数</th>
+                    <th>课程完成率</th>
+                </tr>
+            </thead>
+            <tbody id="admin_course_detail">
+                <!-- AJAX动态渲染 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+$(document).ready(function() {
+    // 初始化ECharts实例
+    let barChart = echarts.init(document.getElementById('echarts_bar'));
+    let pieChart = echarts.init(document.getElementById('echarts_pie'));
+    // 加载管理员数据
+    loadAdminDashboardData();
+
+    function loadAdminDashboardData() {
+        $.ajax({
+            url: "{% url 'training:admin_dashboard_data' %}",
+            type: 'GET',
+            dataType: 'json',
+            success: function(res) {
+                if (res.code === 200) {
+                    let data = res.data;
+                    // 渲染核心数据卡片
+                    $('#total_learn_employee').text(data.total_learn_employee);
+                    $('#total_course').text(data.total_course);
+                    $('#total_completed_course').text(data.total_completed_course);
+                    $('#platform_complete_rate').text(data.platform_complete_rate + '%');
+                    // 渲染柱状图：学习人数
+                    barChart.setOption({
+                        title: { text: '' },
+                        xAxis: {
+                            type: 'category',
+                            data: data.echarts_bar_x,
+                            axisLabel: { rotate: 30, interval: 0 }
+                        },
+                        yAxis: { type: 'value', name: '学习人数' },
+                        series: [{
+                            data: data.echarts_bar_y,
+                            type: 'bar',
+                            color: '#165DFF'
+                        }],
+                        tooltip: { trigger: 'axis' }
+                    });
+                    // 渲染饼图：课程完成率
+                    pieChart.setOption({
+                        title: { text: '' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            name: '课程分布',
+                            type: 'pie',
+                            radius: '50%',
+                            data: data.echarts_pie,
+                            color: ['#52C41A', '#F5222D']
+                        }]
+                    });
+                    // 渲染课程详情表格
+                    let tableHtml = '';
+                    data.course_detail.forEach(item => {
+                        let progress = `<div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-primary" style="width: ${item.complete_rate}%">
+                                ${item.complete_rate}%
+                            </div>
+                        </div>`;
+                        tableHtml += `<tr>
+                            <td>${item.course_name}</td>
+                            <td>${item.learn_count}</td>
+                            <td>${item.completed_count}</td>
+                            <td>${progress}</td>
+                        </tr>`;
+                    });
+                    $('#admin_course_detail').html(tableHtml);
+                }
+            },
+            error: function() {
+                alert('加载平台数据失败，请刷新页面重试');
+            }
+        });
+    }
+
+    // 窗口大小变化时重绘图表
+    window.addEventListener('resize', function() {
+        barChart.resize();
+        pieChart.resize();
+    });
+});
+</script>
+{% endblock %}

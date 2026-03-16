@@ -1,0 +1,92 @@
+{% extends 'training/base.html' %}
+{% block title %}员工登录 - 物流培训系统{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white text-center">
+                <h5 class="mb-0">员工登录</h5>
+            </div>
+            <div class="card-body p-4">
+                <!-- 新增CSRF Token，表单ID确保正确 -->
+                <form id="loginForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="employee_id" class="form-label">员工工号</label>
+                        <input type="text" class="form-control" id="employee_id" name="employee_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">登录密码</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <!-- 按钮改为type="button"，确保不触发表单默认提交 -->
+                    <button type="button" class="btn btn-primary w-100" id="loginBtn">登录</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<!-- 确保jQuery优先加载，且JS代码在DOM加载完成后执行 -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script>
+// 等待DOM完全加载后再绑定事件（核心修复点）
+$(document).ready(function() {
+    // 绑定登录按钮点击事件
+    $('#loginBtn').click(function() {
+        // 1. 获取输入值，去除首尾空格
+        let employee_id = $('#employee_id').val().trim();
+        let password = $('#password').val().trim();
+
+        // 2. 简单校验
+        if (!employee_id) {
+            alert('请输入员工工号！');
+            $('#employee_id').focus(); // 光标定位到工号输入框
+            return;
+        }
+        if (!password) {
+            alert('请输入登录密码！');
+            $('#password').focus();
+            return;
+        }
+
+        // 3. 发送AJAX请求（携带CSRF Token）
+        $.ajax({
+            url: "{% url 'training:login' %}", // 确保路由命名正确
+            type: 'POST',
+            data: {
+                employee_id: employee_id,
+                password: password,
+                csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val() // 必带CSRF Token
+            },
+            dataType: 'json',
+            success: function(res) {
+                if (res.code === 200) {
+                    alert(res.msg);
+                    window.location.href = res.url; // 跳转到课程列表页
+                } else {
+                    alert('登录失败：' + res.msg);
+                }
+            },
+            error: function(xhr, status, error) {
+                // 打印详细错误到控制台，方便排查
+                console.log('AJAX错误信息：');
+                console.log('状态码：', xhr.status);
+                console.log('错误详情：', error);
+                console.log('响应内容：', xhr.responseText);
+                alert('登录请求失败！请检查控制台或联系管理员。');
+            }
+        });
+    });
+
+    // 可选：按回车键触发登录（提升体验）
+    $('#password').keydown(function(e) {
+        if (e.keyCode === 13) { // 回车键
+            $('#loginBtn').click();
+        }
+    });
+});
+</script>
+{% endblock %}

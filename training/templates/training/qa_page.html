@@ -1,0 +1,65 @@
+{% extends 'training/base.html' %}
+{% block title %}公司百问百答 - 物流培训系统{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>公司百问百答</h4>
+        <p class="text-muted">查询物流培训相关高频问题及解答，也可通过右下角AI客服咨询</p>
+        <hr>
+    </div>
+</div>
+
+<!-- 筛选和搜索栏 -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="cate" class="form-label">分类筛选</label>
+                <select class="form-select" id="cate" name="cate" onchange="this.form.submit()">
+                    <option value="">全部分类</option>
+                    {% for cate in categories %}
+                    <option value="{{ cate }}" {% if selected_cate == cate %}selected{% endif %}>{{ cate }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label">关键词搜索</label>
+                <input type="text" class="form-control" id="search" name="search" value="{{ search_key }}" placeholder="输入问题或答案关键词">
+            </div>
+            <div class="col-md-2 align-self-end">
+                <button type="submit" class="btn btn-primary w-100">查询</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 问答列表 -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        {% if qa_list %}
+        <div class="list-group list-group-flush">
+            {% for qa in qa_list %}
+            <div class="list-group-item">
+                <h6 class="mb-1">
+                    <i class="bi bi-question-circle text-primary me-2"></i>{{ qa.question }}
+                </h6>
+                <p class="mb-0 text-muted">
+                    <i class="bi bi-answer text-success me-2"></i>{{ qa.answer }}
+                </p>
+                <small class="text-secondary mt-1 d-block">分类：{{ qa.category }}</small>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <h5>暂无匹配的问答数据</h5>
+            <p>请尝试更换关键词或分类</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.js"></script>
+{% endblock %}

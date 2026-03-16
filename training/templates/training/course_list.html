@@ -1,0 +1,75 @@
+{% extends 'training/base.html' %}
+{% block title %}课程列表 - 物流培训系统{% endblock %}
+{% block content %}
+<!-- 筛选栏 -->
+
+<div class="d-flex justify-content-end mb-3">
+    <a href="{% url 'training:employee_learning_stat' %}" class="btn btn-primary">我的学习数据</a>
+
+</div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>课程列表</h4>
+    <a href="{% url 'training:qa_page' %}" class="btn btn-success">
+        <i class="bi bi-book-half me-1"></i> 百问百答
+    </a>
+</div>
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form id="filterForm" method="get">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <label for="cate_id" class="form-label">课程分类</label>
+                    <select class="form-select" id="cate_id" name="cate_id" onchange="$('#filterForm').submit()">
+                        <option value="">全部分类</option>
+                        {% for cate in categories %}
+                        <option value="{{ cate.id }}" {% if selected_cate == cate.id|stringformat:"i" %}selected{% endif %}>
+                            {{ cate.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="difficulty" class="form-label">课程难度</label>
+                    <select class="form-select" id="difficulty" name="difficulty" onchange="$('#filterForm').submit()">
+                        <option value="">全部难度</option>
+                        <option value="primary" {% if selected_diff == 'primary' %}selected{% endif %}>初级</option>
+                        <option value="middle" {% if selected_diff == 'middle' %}selected{% endif %}>中级</option>
+                    </select>
+                </div>
+                <div class="col-md-4 align-self-end">
+                    <button type="reset" class="btn btn-outline-secondary" onclick="window.location.href='{% url 'training:course_list' %}'">
+                        重置筛选
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- 课程列表 -->
+<div class="row g-4">
+    {% if courses %}
+        {% for course in courses %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <span class="badge bg-secondary">{{ course.category }}</span>
+                    <span class="badge bg-info float-end">{{ course.difficulty }}</span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ course.name }}</h5>
+                    <p class="card-text text-muted small">{{ course.intro }}</p>
+                    <p class="card-text">
+                        <small>章节数：{{ course.chapter_count }} | 学习人数：{{ course.learn_count }}</small>
+                    </p>
+                    <a href="{% url 'training:course_chapter' course.id %}" class="btn btn-primary btn-sm">开始学习</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12 text-center py-5">
+            <h5 class="text-muted">暂无符合条件的课程</h5>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}物流培训系统{% endblock %}</title>
+    <!-- 1. 强制按正确顺序加载依赖（避免加载顺序错误） -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+    {% block css %}{% endblock %}
+
+    <style>
+        /* 主内容避让逻辑 */
+        .main-content {
+            transition: margin-right 0.4s ease;
+        }
+        .main-content.shift-left {
+            margin-right: 380px;
+        }
+
+        /* 客服按钮：纯 CSS 样式，不受 Bootstrap 干扰 */
+        #aiChatBtn {
+            position: fixed !important;
+            bottom: 30px !important;
+            right: 30px !important;
+            width: 60px !important;
+            height: 60px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #0d6efd, #0d5bdb) !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 16px rgba(13, 110, 253, 0.3) !important;
+            z-index: 99998 !important;
+            cursor: pointer !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 24px !important;
+            transition: transform 0.2s, box-shadow 0.2s !important;
+        }
+        #aiChatBtn:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 6px 20px rgba(13, 110, 253, 0.4) !important;
+        }
+
+        /* 客服面板：强制显示/隐藏，不受任何样式遮挡 */
+        #aiChatPanel {
+            position: fixed !important;
+            right: 0 !important;
+            top: 0 !important;
+            width: 380px !important;
+            height: 100vh !important;
+            background: #ffffff !important;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08) !important;
+            z-index: 99999 !important;
+            overflow: hidden !important;
+            display: none; /* 默认隐藏 */
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+        }
+        /* 面板显示状态（用 !important 强制覆盖） */
+        #aiChatPanel.show {
+            display: block !important;
+        }
+
+        /* 头部样式 */
+        .chat-header {
+            background: linear-gradient(135deg, #0d6efd, #0d5bdb) !important;
+            color: white !important;
+            padding: 16px 20px !important;
+            border-bottom: 1px solid #e9ecef !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+        }
+        .chat-header h5 { margin: 0; font-weight: 600; }
+        #closeChatPanelBtn {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border: none !important;
+            color: white !important;
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 50% !important;
+            cursor: pointer !important;
+            transition: background 0.2s !important;
+        }
+        #closeChatPanelBtn:hover {
+            background: rgba(255, 255, 255, 0.35) !important;
+        }
+
+        /* 聊天内容区域 */
+        /* 聊天内容区域：改为 flex 列布局，气泡自动上下排列 */
+.chat-content {
+    height: calc(100vh - 120px) !important;
+    padding: 20px !important;
+    overflow-y: auto !important;
+    background: #f8f9fa !important;
+    display: flex !important;
+    flex-direction: column !important; /* 核心：垂直排列 */
+    gap: 15px !important; /* 气泡之间固定间距 */
+}
+
+/* 聊天气泡：块级元素，靠 align-self 控制左右 */
+.chat-bubble {
+    max-width: 85% !important;
+    padding: 12px 16px !important;
+    border-radius: 18px !important;
+    word-wrap: break-word !important;
+    line-height: 1.5 !important;
+    font-size: 14px !important;
+}
+/* 用户气泡：右对齐 */
+.user-bubble {
+    background: linear-gradient(135deg, #0d6efd, #0d5bdb) !important;
+    color: white !important;
+    align-self: flex-end !important; /* 核心：靠右 */
+    border-top-right-radius: 4px !important;
+}
+/* AI气泡：左对齐 */
+.ai-bubble {
+    background: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #e9ecef !important;
+    align-self: flex-start !important; /* 核心：靠左 */
+    border-top-left-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+        /* 输入区域 */
+        .chat-footer {
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            padding: 15px 20px !important;
+            background: white !important;
+            border-top: 1px solid #e9ecef !important;
+            display: flex !important;
+            gap: 10px !important;
+        }
+        #chatInput {
+            flex: 1 !important;
+            height: 48px !important;
+            padding: 0 15px !important;
+            border: 1px solid #ced4da !important;
+            border-radius: 24px !important;
+            font-size: 14px !important;
+        }
+        #sendChatBtn {
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #0d6efd, #0d5bdb) !important;
+            color: white !important;
+            border: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+        }
+    </style>
+
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body>
+    <!-- 1. 客服按钮（ID 绝对唯一，不会冲突） -->
+    <button id="aiChatBtn">
+        <i class="bi bi-chat-dots"></i>
+    </button>
+
+    <!-- 2. 客服面板（纯 HTML 结构，无复杂框架） -->
+    <div id="aiChatPanel">
+        <div class="chat-header">
+            <h5><i class="bi bi-robot me-2"></i>AI客服助手</h5>
+            <button id="closeChatPanelBtn">×</button>
+        </div>
+        <div class="chat-content" id="chatContent">
+            <div class="welcome-tip">
+                您好！我是物流培训AI客服，<br>有什么可以帮您？
+            </div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" placeholder="输入您的问题...">
+            <button id="sendChatBtn">
+                <i class="bi bi-send"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. 原有页面内容 -->
+    <div class="container-fluid p-0">
+        <nav class="navbar navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="{% url 'training:course_list' %}">公司内部物流培训系统</a>
+                {% if request.session.employee_id %}
+                <span class="text-white me-3">欢迎，{{ request.employee.username }}</span>
+                <a href="{% url 'training:logout' %}" class="btn btn-light btn-sm">注销</a>
+                {% endif %}
+            </div>
+        </nav>
+        <div class="container mt-4 main-content">
+            {% block content %}{% endblock %}
+        </div>
+        <div class="container mt-5 py-3 border-top text-center text-muted main-content">
+            © 2026 公司内部物流培训系统 | 仅内部员工使用
+        </div>
+    </div>
+
+    <!-- 4. 核心 JS：极简事件绑定（100% 触发） -->
+    <script>
+        // 等待页面所有资源加载完成
+        window.onload = function() {
+            console.log('✅ 客服脚本已加载'); // 调试日志
+
+            // 获取元素
+            var chatBtn = document.getElementById('aiChatBtn');
+            var chatPanel = document.getElementById('aiChatPanel');
+            var closeBtn = document.getElementById('closeChatPanelBtn');
+            var chatInput = document.getElementById('chatInput');
+            var sendBtn = document.getElementById('sendChatBtn');
+
+            // ========== 打开面板 ==========
+            chatBtn.onclick = function() {
+                console.log('🔘 点击了客服按钮');
+                chatPanel.classList.add('show'); // 强制显示
+                document.querySelector('.main-content').classList.add('shift-left');
+                chatInput.focus(); // 自动聚焦
+            };
+
+            // ========== 关闭面板 ==========
+            closeBtn.onclick = function() {
+                console.log('❌ 点击了关闭按钮');
+                chatPanel.classList.remove('show'); // 强制隐藏
+                document.querySelector('.main-content').classList.remove('shift-left');
+            };
+
+            // ========== 发送消息逻辑（恢复英伟达 API） ==========
+            function sendMessage() {
+                var question = chatInput.value.trim();
+                if (!question) {
+                    alert('请输入问题后再发送');
+                    return;
+                }
+
+                // 1. 追加用户消息
+                appendMessage('user', question);
+                chatInput.value = '';
+
+                // 2. 模拟加载（实际会调用 API）
+                var loadingId = appendLoading();
+
+                // 3. 调用英伟达 API
+                $.post("{% url 'training:chat_api' %}", {
+                    question: question
+                }, function(res) {
+                    removeLoading(loadingId);
+                    if (res.code === 200) {
+                        appendMessage('ai', res.data.answer);
+                    } else {
+                        appendMessage('ai', res.msg || '服务暂时不可用');
+                    }
+                }).fail(function() {
+                    removeLoading(loadingId);
+                    appendMessage('ai', '网络异常，请检查后重试');
+                });
+            }
+
+            // 绑定发送事件
+            sendBtn.onclick = sendMessage;
+            chatInput.onkeydown = function(e) {
+                if (e.keyCode === 13) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            };
+
+            // ========== 工具函数：追加消息 ==========
+            function appendMessage(type, text) {
+                var className = type === 'user' ? 'user-bubble' : 'ai-bubble';
+                var html = '<div class="chat-bubble ' + className + '">' + text + '</div>';
+                document.getElementById('chatContent').innerHTML += html;
+                scrollToBottom();
+            }
+
+            // ========== 工具函数：加载中 ==========
+            function appendLoading() {
+                var id = 'loading-' + Date.now();
+                var html = '<div id="' + id + '" class="chat-bubble ai-bubble" style="display: flex; gap: 6px;">' +
+                           '<div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div>' +
+                           '</div>';
+                document.getElementById('chatContent').innerHTML += html;
+                scrollToBottom();
+                return id;
+            }
+
+            function removeLoading(id) {
+                var elem = document.getElementById(id);
+                if (elem) elem.remove();
+            }
+
+            function scrollToBottom() {
+                var content = document.getElementById('chatContent');
+                content.scrollTop = content.scrollHeight;
+            }
+        };
+    </script>
+
+    {% block js %}{% endblock %}
+</body>
+</html>
