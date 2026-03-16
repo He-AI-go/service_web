@@ -370,3 +370,48 @@ class CourseComplete(models.Model):
 
     def __str__(self):
         return f"{self.employee.username}-{self.course.name}-{'通过' if self.is_passed else '未通过'}"
+
+class ExamPaper(models.Model):
+    """考试答卷表"""
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name="exam_papers", verbose_name="参考员工"
+    )
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="exam_papers", verbose_name="考试课程"
+    )
+    total_score = models.DecimalField(
+        max_digits=5, decimal_places=1, default=0.0, verbose_name="考试总分"
+    )
+    answer_time = models.DateTimeField(auto_now_add=True, verbose_name="答题时间")
+
+    class Meta:
+        db_table = "exam_paper"
+        verbose_name = "考试答卷"
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return f"{self.employee.username}-{self.course.name}-{self.total_score}分"
+
+
+class ExamAnswerDetail(models.Model):
+    """考试答题明细表"""
+    paper = models.ForeignKey(
+        ExamPaper, on_delete=models.CASCADE, related_name="answer_details", verbose_name="所属答卷"
+    )
+    question = models.ForeignKey(
+        ExamQuestion, on_delete=models.CASCADE, verbose_name="关联考题"
+    )
+    employee_answer = models.TextField(verbose_name="员工答案")
+    is_correct = models.BooleanField(default=False, verbose_name="是否正确")
+    score = models.DecimalField(
+        max_digits=3, decimal_places=1, default=0.0, verbose_name="本题得分"
+    )
+
+    class Meta:
+        db_table = "exam_answer_detail"
+        verbose_name = "考试答题明细"
+        verbose_name_plural = verbose_name
+        unique_together = ("paper", "question")  # 同一答卷对同一考题仅一条记录
+
+    def __str__(self):
+        return f"{self.paper.employee.username}-{self.question.content[:20]}-{'正确' if self.is_correct else '错误'}"

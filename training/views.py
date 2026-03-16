@@ -1,77 +1,51 @@
+# ==============================================
+# 核心 Django 基础导入（按功能分类，统一放置顶部）
+# ==============================================
 from django.shortcuts import render, redirect, reverse, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.utils import timezone
+from django.db.models import Count, Sum, Q
+from django.db.models.functions import Coalesce
+from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
+from django.views.decorators.csrf import csrf_exempt
+
+# ==============================================
+# 自定义模块/装饰器/工具导入
+# ==============================================
 from .models import (
     Employee, CourseCategory, Course, CourseChapter,
-    CourseResource, LearningRecord, ChapterTypeChoices
+    CourseResource, LearningRecord, ChapterTypeChoices,
+    CourseTeacher, CourseDiscussion, CourseQuestion, CourseAnswer,
+    ExamQuestion, CourseComplete,ExamAnswerDetail,ExamPaper)
+from .decorators import (
+    employee_login_required,
+    admin_login_required,
+    course_stat_view_required
 )
-from .decorators import employee_login_required
-from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
-from django.http import JsonResponse, HttpResponseRedirect
-from django.urls import reverse
-from django.db.models import Count, Sum, Q
-from django.db.models.functions import Coalesce
-from .decorators import employee_login_required, admin_login_required, course_stat_view_required
-# 聚合函数导入
-from django.db.models import Count, Sum, Q
-from django.db.models.functions import Coalesce
-# 管理员登录相关导入
-from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
-from django.views.decorators.csrf import csrf_exempt
+from .knowledge_utils import retrieve_knowledge
+
+# ==============================================
+# 第三方库导入（按使用频率/功能分组）
+# ==============================================
+# OpenAI 相关
 from openai import OpenAI
+
+# 环境变量配置
 import os
 from dotenv import load_dotenv
 
-# 加载环境变量（优先从.env读取，避免硬编码）
-# 加载环境变量
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
+# 文件解析相关（PDF/Word/PPT）
 from PyPDF2 import PdfReader
 from docx import Document
+from pptx import Presentation
+
+# 向量检索/嵌入相关
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
-from PyPDF2 import PdfReader
-from docx import Document
-from pptx import Presentation  # 新增：PPT 读取
-import faiss
-import numpy as np
-from sentence_transformers import SentenceTransformer
-
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
-
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
-from .knowledge_utils import retrieve_knowledge
-
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from openai import OpenAI
-import os
-import hashlib  # 新增：用于生成问题哈希（缓存用）
-from dotenv import load_dotenv
-from .knowledge_utils import retrieve_knowledge
+# 缓存/哈希相关
+import hashlib
 
 # 加载环境变量
 load_dotenv()
@@ -710,15 +684,19 @@ def course_detail(request, course_id):
     exam_questions = ExamQuestion.objects.filter(course=course)
     has_exam = exam_questions.exists()
     # 7. 课程完成状态（判断是否通过考试）
-    course_complete = CourseComplete.objects.filter(employee=request.employee, course=course).first()
-    is_course_passed = course_complete.is_passed if course_complete else False
+    exam_paper = ExamPaper.objects.filter(employee=request.employee, course=course).order_by('-answer_time').first()
+    is_course_passed = exam_paper.total_score >= 60 if exam_paper else False
+    course_complete = exam_paper
 
     # 8. 下一课程（解锁逻辑：当前课程通过考试才显示）
     next_course = None
     current_category = course.category
     same_cate_courses = Course.objects.filter(category=current_category).order_by('id')
-    course_index = list(same_cate_courses.values_list('id', flat=True)).index(course.id)
-    if course_index < len(same_cate_courses) - 1 and is_course_passed:
+    try:
+        course_index = list(same_cate_courses.values_list('id', flat=True)).index(course.id)
+    except ValueError:
+        course_index = -1
+    if course_index != -1 and course_index < len(same_cate_courses) - 1 and is_course_passed:
         next_course = same_cate_courses[course_index + 1]
 
     # 9. 学习记录（章节完成状态）
@@ -808,15 +786,19 @@ def course_exam(request, course_id):
 
         # 标记课程完成状态（60分及格）
         is_passed = total_score >= 60
-        CourseComplete.objects.update_or_create(
+        exam_paper = ExamPaper.objects.create(
             employee=request.employee,
             course=course,
-            defaults={
-                'exam_score': total_score,
-                'is_passed': is_passed,
-                'complete_time': timezone.now()
-            }
+            total_score=total_score
         )
+        for detail in answer_details:
+            ExamAnswerDetail.objects.create(
+                paper=exam_paper,
+                question=detail['question'],
+                employee_answer=detail['employee_answer'],
+                is_correct=detail['is_correct'],
+                score=detail['score']
+            )
 
         context = {
             'course': course,
