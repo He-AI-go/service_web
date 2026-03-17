@@ -278,26 +278,34 @@ def course_chapter(request, course_id):
 
 from django.contrib import messages
 # 新增：添加课程评价视图
-@login_required
+@login_required(login_url='/login/')
 def add_course_comment(request, course_id):
-    # 获取课程对象，不存在则返回404
     course = get_object_or_404(Course, id=course_id)
-
     if request.method == 'POST':
-        # 获取表单提交的评价内容
-        content = request.POST.get('content', '').strip()
-        if not content:
-            messages.error(request, '评价内容不能为空！')
-            return redirect('training:course_detail', pk=course_id)  # 跳回课程详情页
+        # 获取前端提交的评分和评价内容
+        rating = request.POST.get('rating', 0)
+        comment_content = request.POST.get('comment_content', '').strip()
+        chapter_id = request.POST.get('chapter_id')  # 从表单获取当前章节ID
 
-        # 创建评价记录（关联当前登录用户和课程）
+        # 简单验证
+        if not comment_content:
+            messages.error(request, '评价内容不能为空！')
+            return redirect('training:course_chapter', chapter_id=chapter_id)
+
+        # 保存评价到数据库（替换为你的实际模型逻辑）
         CourseComment.objects.create(
             course=course,
-            user=request.user,  # 当前登录的员工
-            content=content
+            user=request.user,
+            rating=int(rating),
+            content=comment_content
         )
-        messages.success(request, '评价发布成功！')
-        return redirect('training:course_detail', pk=course_id)  # 发布后返回课程详情
+        messages.success(request, '评价提交成功！')
+
+        # 重定向回当前课程章节页面
+        return redirect('training:course_chapter', chapter_id=chapter_id)
+
+    # GET 请求直接返回章节页
+    return redirect('training:course_chapter', chapter_id=request.GET.get('chapter_id', 1))
 
     # GET请求时跳回课程详情（避免直接访问该URL）
     return redirect('training:course_detail', pk=course_id)
