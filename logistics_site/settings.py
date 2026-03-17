@@ -133,3 +133,7 @@ MEDIA_URL = '/media/'  # 访问媒体文件的URL前缀，如http://127.0.0.1:80
 # 会话配置：登录状态保持（默认即可，微调超时）
 SESSION_COOKIE_AGE = 3600 * 8  # 8小时超时
 SESSION_SAVE_EVERY_REQUEST = True
+
+
+
+LOGIN_URL = '/login/'

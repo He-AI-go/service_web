@@ -33,11 +33,14 @@ urlpatterns = [
     path('chat-iframe/', views.chat_iframe, name='chat_iframe'),
 
     path('chat-api/', views.chat_api, name='chat_api'),  # 新增：客服消息接口
-path('course/detail/<int:course_id>/', views.course_detail, name='course_detail'),
+    path('course/detail/<int:course_id>/', views.course_detail, name='course_detail'),
     # 课程考试
     path('course/exam/<int:course_id>/', views.course_exam, name='course_exam'),
     # 学习答疑
     path('course/qa/question/<int:course_id>/create/', views.qa_question_create, name='qa_question_create'),
     path('course/qa/answer/<int:question_id>/create/', views.qa_answer_create, name='qa_answer_create'),
     path('course/qa/answer/<int:answer_id>/accept/', views.qa_question_accept, name='qa_answer_accept'),
+    path('course/comment/add/<int:course_id>/', views.add_course_comment, name='add_course_comment'),
+    path('course/comment/like/<int:comment_id>/', views.like_course_comment, name='like_course_comment'),
+
 ]

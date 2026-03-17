@@ -8,6 +8,7 @@ from django.db.models import Count, Sum, Q
 from django.db.models.functions import Coalesce
 from django.contrib.auth import authenticate, login as dj_login, logout as dj_logout
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
 # ==============================================
 # 自定义模块/装饰器/工具导入
@@ -17,6 +18,11 @@ from .models import (
     CourseResource, LearningRecord, ChapterTypeChoices,
     CourseTeacher, CourseDiscussion, CourseQuestion, CourseAnswer,
     ExamQuestion, CourseComplete,ExamAnswerDetail,ExamPaper)
+from training.models import CourseDiscussion
+
+# 正确写法（匹配models.py中定义的模型名）
+from training.models import CourseComment
+
 from .decorators import (
     employee_login_required,
     admin_login_required,
@@ -231,6 +237,8 @@ def course_chapter(request, course_id):
     first_chapters = CourseChapter.objects.filter(
         course_id=course_id, parent__isnull=True
     ).order_by('sort').prefetch_related('sub_chapters__resource', 'resource')
+    #获取该课程的所有评价
+    course_comments = course.comments.all()
     # 获取当前员工的所有学习记录
     learn_records = LearningRecord.objects.filter(
         employee=request.employee, chapter__course_id=course_id
@@ -263,9 +271,65 @@ def course_chapter(request, course_id):
     # 渲染页面
     context = {
         'course': course,
-        'chapters': chapter_data
+        'chapters': chapter_data,
+        'course_comments': course_comments,  # 传递评价列表到模板
     }
     return render(request, 'training/course_chapter.html', context)
+
+from django.contrib import messages
+# 新增：添加课程评价视图
+@login_required
+def add_course_comment(request, course_id):
+    # 获取课程对象，不存在则返回404
+    course = get_object_or_404(Course, id=course_id)
+
+    if request.method == 'POST':
+        # 获取表单提交的评价内容
+        content = request.POST.get('content', '').strip()
+        if not content:
+            messages.error(request, '评价内容不能为空！')
+            return redirect('training:course_detail', pk=course_id)  # 跳回课程详情页
+
+        # 创建评价记录（关联当前登录用户和课程）
+        CourseComment.objects.create(
+            course=course,
+            user=request.user,  # 当前登录的员工
+            content=content
+        )
+        messages.success(request, '评价发布成功！')
+        return redirect('training:course_detail', pk=course_id)  # 发布后返回课程详情
+
+    # GET请求时跳回课程详情（避免直接访问该URL）
+    return redirect('training:course_detail', pk=course_id)
+"""def add_course_comment(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    if request.method == 'POST':
+        content = request.POST.get('content', '').strip()
+        if content:
+            # 创建评价（当前登录用户为评价人）
+            CourseComment.objects.create(
+                course=course,
+                creator=request.user,
+                content=content
+            )
+    # 提交后返回课程详情页
+    return redirect('training:course_chapter', course_id=course_id)"""
+
+
+# 新增：评价点赞视图
+@login_required
+def like_course_comment(request, comment_id):
+    comment = get_object_or_404(CourseComment, id=comment_id)
+    # 切换点赞/取消点赞状态
+    if request.user in comment.liked_users.all():
+        comment.liked_users.remove(request.user)
+        comment.like_count -= 1
+    else:
+        comment.liked_users.add(request.user)
+        comment.like_count += 1
+    comment.save()
+    # 点赞后返回课程详情页
+    return redirect('training:course_chapter', course_id=comment.course.id)
 
 # ---------------------- 视频播放（核心功能） ----------------------
 @employee_login_required
@@ -360,10 +424,15 @@ def my_learning_stat(request):
     total_course = learn_courses.count()  # 已参与课程数
     completed_course = 0  # 已完成课程数（所有章节完成）
     course_stat_list = []  # 各课程详情统计
+
     # 3. 遍历课程计算章节完成率
     for course in learn_courses:
         # 该课程总章节数
         total_chapter = course.chapters.count()
+        # 该课程视频章节总数
+        total_video_chapter = course.chapters.filter(type='video').count()
+        # 该课程文档章节总数
+        total_doc_chapter = course.chapters.filter(type='doc').count()
         # 员工已完成该课程章节数
         completed_chapter = LearningRecord.objects.filter(
             employee=employee,
@@ -383,7 +452,9 @@ def my_learning_stat(request):
             'total_chapter': total_chapter,
             'completed_chapter': completed_chapter,
             'complete_rate': chapter_complete_rate,
-            'is_completed': is_course_completed
+            'is_completed': is_course_completed,
+            'total_video_chapter': total_video_chapter,
+            'total_doc_chapter': total_doc_chapter,
         })
     # 4. 个人总学习进度（已完成课程数/已参与课程数）
     total_complete_rate = round((completed_course / total_course) * 100, 2) if total_course > 0 else 0.0
@@ -675,11 +746,15 @@ def course_detail(request, course_id):
     # 2. 课程资料
     resources = CourseResource.objects.filter(course=course).order_by('-upload_time')
     # 3. 教师介绍
-    teacher = course.teacher if hasattr(course, 'teacher') else None
-    # 4. 学习交流（课程通知）
-    discussions = CourseDiscussion.objects.filter(course=course)
-    # 5. 学习答疑（问题列表）
-    qa_questions = CourseQuestion.objects.filter(course=course).prefetch_related('answers__creator')
+
+    teacher = CourseTeacher.objects.filter(course=course).first()
+    # 1. 获取课程讨论
+    discussions = CourseDiscussion.objects.filter(course=course).order_by('-create_time')
+    # 2. 获取课程答疑问题
+    qa_questions = CourseQuestion.objects.filter(course=course).order_by('-create_time')
+    # 3. 判断是否有考题
+    has_exam = ExamQuestion.objects.filter(course=course).exists()
+
     # 6. 考试相关
     exam_questions = ExamQuestion.objects.filter(course=course)
     has_exam = exam_questions.exists()
@@ -720,7 +795,7 @@ def course_detail(request, course_id):
         'next_course': next_course,
         'course_complete': course_complete
     }
-    return render(request, 'training/course_detail.html', context)
+    return render(request, 'training/course_chapter.html', context)
 
 #2.考试相关视图（自动阅卷 + 课程完成标记）
 @employee_login_required

@@ -3,7 +3,7 @@ from django.core.validators import FileExtensionValidator
 import os
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.contrib.auth.models import User
 
 # 保留你原有导入（若knowledge_utils.py不存在，需确保后续创建或注释）
 # from .knowledge_utils import add_single_file_to_kb
@@ -244,10 +244,26 @@ class CourseTeacher(models.Model):
     def __str__(self):
         return f"{self.course.name}-{self.name}"
 
+class CourseComment(models.Model):
+    """课程评价模型"""
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name='所属课程', related_name='comments')
+    creator = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='评价人')
+    content = models.TextField('评价内容')
+    like_count = models.IntegerField('点赞数', default=0)
+    liked_users = models.ManyToManyField(User, verbose_name='点赞用户', related_name='liked_comments', blank=True)
+    create_time = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        verbose_name = '课程评价'
+        verbose_name_plural = '课程评价'
+        ordering = ['-create_time']  # 按发布时间倒序
+
+    def __str__(self):
+        return f'{self.creator.username} 对 {self.course.name} 的评价'
 
 # 2. 学习交流模型（原嵌套在LearningRecord内，移至外部）
 class CourseDiscussion(models.Model):
-    """学习交流（课程通知/学习Tips，替代员工评价）"""
+    #学习交流（课程通知/学习Tips，替代员工评价）
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="discussions", verbose_name="所属课程"
     )

@@ -1,20 +1,20 @@
 {% extends 'training/base.html' %}
 {% block title %}{{ course.name }} - 课程详情{% endblock %}
 {% block content %}
-<!-- 原有课程信息 + 完成率统计 -->
+<!-- 原有课程信息区域保留 -->
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
         <h4>{{ course.name }}</h4>
         <p class="text-muted">{{ course.category.name }} | {{ course.get_difficulty_display }} | 学习人数：{{ course.learn_count }}</p>
         <p>{{ course.intro|linebreaks }}</p>
-        <!-- 新增：课程完成率（AJAX动态渲染） -->
+        <!-- 课程完成率（AJAX动态渲染） -->
         <div class="mt-3" id="course_complete_rate">
-            <!-- AJAX动态渲染 -->
+            <!-- AJAX动态填充 -->
         </div>
     </div>
 </div>
 
-<!-- 新增：资料完成率统计（替代原章节完成率） -->
+<!-- 资料完成率统计区域保留 -->
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light">
         <h6 class="mb-0">资料完成率统计</h6>
@@ -35,15 +35,15 @@
                 </tr>
             </thead>
             <tbody id="resource_stat_table">
-                <!-- AJAX动态渲染 -->
+                <!-- AJAX动态填充 -->
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- 7大板块：网格布局 -->
+<!-- 7大板块布局 -->
 <div class="row g-4">
-    <!-- 板块1：课程介绍（保留优化） -->
+    <!-- 1. 课程介绍（保留） -->
     <div class="col-md-12">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
@@ -55,7 +55,7 @@
         </div>
     </div>
 
-    <!-- 板块2：课程资料（核心，替代原章节） -->
+    <!-- 2. 课程资料（修复Django模板语法） -->
     <div class="col-md-8">
         <div class="card shadow-sm">
             <div class="card-header bg-success text-white">
@@ -67,7 +67,7 @@
                     <li class="list-group-item">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center">
-                                <!-- 文件类型图标（纯原生if判断） -->
+                                <!-- 文件类型图标（Django模板规范写法） -->
                                 {% if resource.file_type == 'mp4' %}
                                     <i class="bi bi-play-circle-fill text-danger me-2 fs-5"></i>
                                 {% elif resource.file_type == 'ppt' or resource.file_type == 'pptx' %}
@@ -81,8 +81,7 @@
                                 {% else %}
                                     <i class="bi bi-file-earmark-fill text-secondary me-2 fs-5"></i>
                                 {% endif %}
-
-                                <!-- 资料名称 + 类型 + 大小 + 完成状态 -->
+                                <!-- 资料信息 -->
                                 <div>
                                     <div class="fw-medium">
                                         第{{ forloop.counter }}份：{{ resource.name }}
@@ -91,7 +90,7 @@
                                         {% else %}
                                         <span class="badge bg-primary bg-opacity-25 text-primary ms-2">文档</span>
                                         {% endif %}
-                                        <!-- 完成状态（从learn_record_dict获取） -->
+                                        <!-- 完成状态 -->
                                         {% if learn_record_dict and resource.id in learn_record_dict %}
                                             <span class="badge bg-success ms-2">已完成</span>
                                         {% else %}
@@ -105,7 +104,6 @@
                                     </small>
                                 </div>
                             </div>
-
                             <!-- 操作按钮 -->
                             <div class="d-flex gap-2">
                                 {% if resource.file_type == 'mp4' %}
@@ -134,7 +132,7 @@
         </div>
     </div>
 
-    <!-- 板块3：教师介绍 -->
+    <!-- 3. 教师介绍（保留） -->
     <div class="col-md-4">
         <div class="card shadow-sm">
             <div class="card-header bg-teal text-white">
@@ -160,7 +158,7 @@
         </div>
     </div>
 
-    <!-- 板块4：课程考试 -->
+    <!-- 4. 课程考试（保留） -->
     <div class="col-md-8">
         <div class="card shadow-sm">
             <div class="card-header bg-warning text-white">
@@ -198,7 +196,7 @@
         </div>
     </div>
 
-    <!-- 板块5：资料统计 -->
+    <!-- 5. 资料统计（保留） -->
     <div class="col-md-4">
         <div class="card shadow-sm">
             <div class="card-header bg-info text-white">
@@ -214,7 +212,6 @@
                             {% with doc_count=doc_count|add:1 %}{% endwith %}
                         {% endif %}
                     {% endfor %}
-
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="text-muted">总资料数</span>
                         <span class="badge bg-primary fs-6">{{ total }}</span>
@@ -240,46 +237,61 @@
         </div>
     </div>
 
-    <!-- 板块6：学习交流 -->
+    <!-- 6. 课程评价（核心功能：所有员工可发布/查看） -->
     <div class="col-md-12">
         <div class="card shadow-sm">
             <div class="card-header bg-indigo text-white">
-                <h5 class="mb-0"><i class="bi bi-chat-fill me-2"></i>学习交流</h5>
+                <h5 class="mb-0"><i class="bi bi-star-fill me-2"></i>课程评价</h5>
             </div>
             <div class="card-body">
-                {% if discussions %}
-                <div class="list-group mb-3">
-                    {% for discussion in discussions %}
+                <!-- 所有员工均可发布评价（无管理员权限限制） -->
+                <form method="post" action="{% url 'training:add_course_comment' course.id %}" class="mb-4">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="comment_content" class="form-label">发布我的学习评价</label>
+                        <textarea class="form-control" id="comment_content" name="content" rows="3"
+                                  placeholder="请输入你对本课程的学习评价、收获或建议..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">发布评价</button>
+                </form>
+
+                <!-- 展示所有员工的评价列表 -->
+                {% if course_comments %}
+                <div class="list-group">
+                    {% for comment in course_comments %}
                     <div class="list-group-item border-0 pb-3 mb-3 border-bottom">
-                        <h6 class="mb-1 fw-medium">{{ discussion.title }}
-                            {% if discussion.is_notice %}
-                            <span class="badge bg-primary">官方通知</span>
-                            {% endif %}
-                        </h6>
-                        <p class="mb-2 small">{{ discussion.content|truncatechars:200|linebreaks }}</p>
-                        <small class="text-muted">
-                            发布人：{{ discussion.creator.username }} ·
-                            发布时间：{{ discussion.create_time|date:'Y-m-d H:i' }} ·
-                            评论数：{{ discussion.comments.count }}
-                        </small>
-                        <a href="{% url 'training:discussion_detail' discussion.id %}" class="btn btn-sm btn-outline-primary mt-2">
-                            <i class="bi bi-chat-dots me-1"></i> 查看详情
-                        </a>
+                        <div class="d-flex align-items-start">
+                            <div class="me-3">
+                                <i class="bi bi-person-circle fs-4 text-muted"></i>
+                            </div>
+                            <div class="w-100">
+                                <h6 class="mb-1 fw-medium">{{ comment.creator.username }}</h6>
+                                <p class="mb-2 small">{{ comment.content|linebreaks }}</p>
+                                <small class="text-muted">
+                                    发布时间：{{ comment.create_time|date:'Y-m-d H:i' }}
+                                    {% if comment.like_count %}· 点赞：{{ comment.like_count }}{% endif %}
+                                </small>
+                                <!-- 点赞功能 -->
+                                <a href="{% url 'training:like_course_comment' comment.id %}" class="btn btn-sm btn-outline-secondary mt-2">
+                                    <i class="bi bi-heart{% if user in comment.liked_users.all %}Fill{% endif %} me-1"></i>
+                                    {{ comment.like_count|default:0 }}
+                                </a>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
                 <div class="text-center text-muted py-5">
-                    <i class="bi bi-chat-left-x fs-3 mb-2"></i>
-                    <p>暂无学习交流内容</p>
-                    <p class="small">管理员可发布学习通知、知识点总结等内容</p>
+                    <i class="bi bi-star-half fs-3 mb-2"></i>
+                    <p>暂无课程评价，快来发布你的第一条评价吧！</p>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- 板块7：学习答疑 -->
+    <!-- 7. 学习答疑（保留） -->
     <div class="col-md-12">
         <div class="card shadow-sm">
             <div class="card-header bg-purple text-white d-flex justify-content-between align-items-center">
@@ -309,7 +321,6 @@
                                     提问时间：{{ question.create_time|date:'Y-m-d H:i' }} ·
                                     浏览：{{ question.view_count }} · 点赞：{{ question.like_count }}
                                 </small>
-
                                 <!-- 回复列表 -->
                                 <div class="mt-3 ms-4">
                                     {% if question.answers %}
@@ -335,7 +346,6 @@
                                     {% else %}
                                     <div class="text-muted small">暂无回复，快来抢沙发～</div>
                                     {% endif %}
-
                                     <!-- 回复表单 -->
                                     <form action="{% url 'training:qa_answer_create' question.id %}" method="post" class="mt-3">
                                         {% csrf_token %}
@@ -363,7 +373,7 @@
     </div>
 </div>
 
-<!-- 发布问题模态框 -->
+<!-- 发布问题模态框（保留） -->
 <div class="modal fade" id="questionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -396,14 +406,13 @@
 {% endblock %}
 
 {% block js %}
-<!-- 引入jQuery（旧版AJAX依赖） -->
+<!-- 引入依赖JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.js"></script>
 <script>
-// 旧版：加载资料完成率数据（适配原AJAX接口）
+// 加载资料完成率数据（保留原有逻辑）
 $(document).ready(function() {
-    // 加载资料完成率统计
     loadResourceStat({{ course.id }});
 
     function loadResourceStat(courseId) {
@@ -414,7 +423,7 @@ $(document).ready(function() {
             success: function(res) {
                 if (res.code === 200) {
                     let data = res.data;
-                    // 渲染课程完成率（替换原章节完成率为资料完成率）
+                    // 渲染课程完成率
                     if (data.is_admin) {
                         $('#course_complete_rate').html(`
                             <div class="alert alert-info mb-0">
@@ -423,12 +432,10 @@ $(document).ready(function() {
                             </div>
                         `);
                     }
-                    // 渲染资料完成率表格（替换原章节表格）
+                    // 渲染资料完成率表格
                     let tableHtml = '';
-                    // 适配原接口返回的 chapter_stat_list 数据结构，兼容资料统计
                     data.chapter_stat_list.forEach(item => {
                         if (data.is_admin) {
-                            // 管理员视角
                             let progress = `<div class="progress" style="height: 20px;">
                                 <div class="progress-bar bg-primary" style="width: ${item.complete_rate}%">
                                     ${item.complete_rate}%
@@ -441,7 +448,6 @@ $(document).ready(function() {
                                 <td>${progress}</td>
                             </tr>`;
                         } else {
-                            // 员工视角
                             let status = item.is_completed ?
                                 '<span class="badge bg-success">已完成</span>' :
                                 '<span class="badge bg-secondary">未完成</span>';
@@ -465,13 +471,12 @@ $(document).ready(function() {
         });
     }
 
-    // 模态框表单验证
+    // 表单验证（保留）
     const questionForm = document.querySelector('#questionModal form');
     if (questionForm) {
         questionForm.addEventListener('submit', function(e) {
             const title = document.getElementById('questionTitle').value.trim();
             const content = document.getElementById('questionContent').value.trim();
-
             if (!title) {
                 alert('请输入问题标题');
                 e.preventDefault();
@@ -490,7 +495,7 @@ $(document).ready(function() {
         });
     }
 
-    // 回复表单验证
+    // 回复表单验证（保留）
     const answerForms = document.querySelectorAll('form[action*="qa_answer_create"]');
     answerForms.forEach(form => {
         form.addEventListener('submit', function(e) {
